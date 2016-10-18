@@ -1,18 +1,20 @@
 <?php
-require_once (dirname(__FILE__).'/../Constants/AppliCommonPublic.php');
-require_once (dirname(__FILE__).'/../Exceptions/NASDKException.php');
-require_once (dirname(__FILE__).'/../Exceptions/NAClientException.php');
 
-define('CURL_ERROR_TYPE', 0);
-define('API_ERROR_TYPE',1);//error return from api
-define('INTERNAL_ERROR_TYPE', 2); //error because internal state is not consistent
-define('JSON_ERROR_TYPE',3);
-define('NOT_LOGGED_ERROR_TYPE', 4); //unable to get access token
+namespace Netatmo\Clients;
 
-define('BACKEND_BASE_URI', "https://api.netatmo.net/");
-define('BACKEND_SERVICES_URI', "https://api.netatmo.net/api");
-define('BACKEND_ACCESS_TOKEN_URI', "https://api.netatmo.net/oauth2/token");
-define('BACKEND_AUTHORIZE_URI', "https://api.netatmo.net/oauth2/authorize");
+use Netatmo\Exceptions\NASDKException;
+use Netatmo\Exceptions\NAClientException;
+use Netatmo\Exceptions\NAApiErrorType;
+use Netatmo\Exceptions\NACurlErrorType;
+use Netatmo\Exceptions\NAJsonErrorType;
+use Netatmo\Exceptions\NAInternalErrorType;
+use Netatmo\Exceptions\NANotLoggedErrorType;
+use Netatmo\Common\NARestErrorCode;
+
+define('BACKEND_BASE_URI', "https://api.netatmo.com/");
+define('BACKEND_SERVICES_URI', "https://api.netatmo.com/api");
+define('BACKEND_ACCESS_TOKEN_URI', "https://api.netatmo.com/oauth2/token");
+define('BACKEND_AUTHORIZE_URI', "https://api.netatmo.com/oauth2/authorize");
 
 
 /**
@@ -158,6 +160,18 @@ class NAApiClient
             }
         }
 
+        if(isset($config['scope']) && is_array($config['scope']))
+        {
+            foreach($config['scope'] as $scope)
+            {
+                trim($scope);
+            }
+
+            $scope = implode(' ', $config['scope']);
+            $this->setVariable('scope', $scope);
+            unset($config['scope']);
+        }
+
         // Other else configurations.
         foreach ($config as $name => $value)
         {
@@ -208,6 +222,12 @@ class NAApiClient
         $opts = self::$CURL_OPTS;
         if ($params)
         {
+            if(isset($params['access_token']))
+            {
+                $opts[CURLOPT_HTTPHEADER][] = 'Authorization: Bearer ' . $params['access_token'];
+                unset($params['access_token']);
+            }
+
             switch ($method)
             {
                 case 'GET':

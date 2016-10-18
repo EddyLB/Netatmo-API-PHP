@@ -5,12 +5,12 @@
 * For further information, please take a look at https://dev.netatmo.com/doc
 */
 define('__ROOT__', dirname(dirname(__FILE__)));
-require_once (__ROOT__.'/src/Clients/NAWelcomeApiClient.php');
+require_once (__ROOT__.'/src/Netatmo/autoload.php');
 require_once ('Config.php');
 require_once ('Utils.php');
 
 
-$scope = NAScopes::SCOPE_READ_CAMERA;
+$scope = Netatmo\Common\NAScopes::SCOPE_READ_CAMERA;
 
 //Client configuration from Config.php
 $conf = array("client_id" => $client_id,
@@ -18,14 +18,14 @@ $conf = array("client_id" => $client_id,
               "username" => $test_username,
               "password" => $test_password,
               "scope" => $scope);
-$client = new NAWelcomeApiClient($conf);
+$client = new Netatmo\Clients\NAWelcomeApiClient($conf);
 
 //Retrieve access token
 try
 {
     $tokens = $client->getAccessToken();
 }
-catch(NAClientException $ex)
+catch(Netatmo\Exceptions\NAClientException $ex)
 {
     $error_msg = "An error happened  while trying to retrieve your tokens \n" . $ex->getMessage() . "\n";
     handleError($error_msg, TRUE);
@@ -38,7 +38,7 @@ try
     $response = $client->getData(NULL, 10);
     $homes = $response->getData();
 }
-catch(NASDKException $ex)
+catch(Netatmo\Exceptions\NASDKException $ex)
 {
     handleError("An error happened while trying to retrieve home information: ".$ex->getMessage() ."\n", TRUE);
 }
@@ -56,6 +56,7 @@ foreach($homes as $home)
 $home = $homes[0];
 $tz = $home->getTimezone();
 $persons = $home->getPersons();
+
 if(!empty($persons))
 {
     $known = $home->getKnownPersons();
@@ -66,7 +67,7 @@ if(!empty($persons))
         $response = $client->getLastEventOf($home->getId(), $person->getId());
         $eventList = $response->getData();
     }
-    catch(NASDKException $ex)
+    catch(Netatmo\Exceptions\NASDKException $ex)
     {
         handleError("An error occured while retrieving last event of ".$person->getPseudo() . "\n");
     }
@@ -87,7 +88,7 @@ if(!empty($persons))
             $response = $client->getNextEvents($home->getId(), $lastEvent->getId(), 10);
             $data = $response->getData();
         }
-        catch(NASDKException $ex)
+        catch(Netatmo\Exceptions\NASDKException $ex)
         {
             handleError("An error occured while retrieving events: ". $ex->getMessage(). "\n");
         }
@@ -103,10 +104,14 @@ if(!empty($persons))
 
         try
         {
-            printMessageWithBorder("Event's snapshot");
-            echo $event->getSnapshot() . "\n";
+            $snapshot = $event->getSnapshot();
+            if(!is_null($snapshot))
+            {
+                printMessageWithBorder("Event's snapshot");
+                echo $snapshot . "\n";
+            }
         }
-        catch(NASDKException $ex)
+        catch(Netatmo\Exceptions\NASDKException $ex)
         {
             handleError("An error occured while retrieving event's snapshot: ". $ex->getMessage()."\n");
         }
